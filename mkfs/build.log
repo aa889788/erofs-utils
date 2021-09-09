@@ -1,0 +1,16 @@
+/usr/bin/cmake -S/root/erofs-utils/mkfs -B/root/erofs-utils/mkfs --check-build-system CMakeFiles/Makefile.cmake 0
+/usr/bin/cmake -E cmake_progress_start /root/erofs-utils/mkfs/CMakeFiles /root/erofs-utils/mkfs//CMakeFiles/progress.marks
+make  -f CMakeFiles/Makefile2 all
+make[1]: 进入目录“/root/erofs-utils/mkfs”
+make  -f CMakeFiles/mkfs.erofs.dir/build.make CMakeFiles/mkfs.erofs.dir/depend
+make[2]: 进入目录“/root/erofs-utils/mkfs”
+cd /root/erofs-utils/mkfs && /usr/bin/cmake -E cmake_depends "Unix Makefiles" /root/erofs-utils/mkfs /root/erofs-utils/mkfs /root/erofs-utils/mkfs /root/erofs-utils/mkfs /root/erofs-utils/mkfs/CMakeFiles/mkfs.erofs.dir/DependInfo.cmake --color=
+Dependencies file "CMakeFiles/mkfs.erofs.dir/main.c.o.d" is newer than depends file "/root/erofs-utils/mkfs/CMakeFiles/mkfs.erofs.dir/compiler_depend.internal".
+Consolidate compiler generated dependencies of target mkfs.erofs
+make[2]: 离开目录“/root/erofs-utils/mkfs”
+make  -f CMakeFiles/mkfs.erofs.dir/build.make CMakeFiles/mkfs.erofs.dir/build
+make[2]: 进入目录“/root/erofs-utils/mkfs”
+[ 50%] Building C object CMakeFiles/mkfs.erofs.dir/main.c.o
+clang++ -DHAVE_LIBSELINUX -DHAVE_LINUX_TYPES_H -DWITH_ANDROID -I/root/erofs-utils/mkfs/../include -I/root/erofs-utils/mkfs/../libselinux/include -I/root/erofs-utils/mkfs/../core/libcutils/include -DHAVE_LINUX_TYPES_H -DHAVE_LIBSELINUX -DWITH_ANDROID -MD -MT CMakeFiles/mkfs.erofs.dir/main.c.o -MF CMakeFiles/mkfs.erofs.dir/main.c.o.d -o CMakeFiles/mkfs.erofs.dir/main.c.o -c /root/erofs-utils/mkfs/main.c
+make[2]: 离开目录“/root/erofs-utils/mkfs”
+make[1]: 离开目录“/root/erofs-utils/mkfs”

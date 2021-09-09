@@ -1,0 +1,4 @@
+# This is a generated file.
+MESSAGE("When testing is complete, review test output in the
+\"/root/erofs-utils/pcre/dist2/Testing/Temporary\" folder.")
+MESSAGE(" ")

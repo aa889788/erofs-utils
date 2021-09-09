@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.20)
+
+# set the project name 
+project(liblog) 
+#set(CMAKE_C_COMPILER clang)
+#set(CMAKE_CPP_COMPILER clang++)
+set(CMAKE_CXX_STANDARD 17)
+set(BUILD_STATIC_LIBS yes)
+set(CMAKE_C_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "-O3")
+
+add_subdirectory(libbase)
+add_subdirectory(liblog)
+add_subdirectory(libselinux)
+add_subdirectory(libcutils)
+add_subdirectory(pcre/dist2)
+add_subdirectory(lib)
+add_subdirectory(lz4/build/cmake/)
+add_subdirectory(libuuid)
+add_subdirectory(mkfs)

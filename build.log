@@ -1,0 +1,83 @@
+make  all-recursive
+make[1]: 进入目录“/root/erofs-utils”
+Making all in man
+make[2]: 进入目录“/root/erofs-utils/man”
+make[2]: 对“all”无需做任何事。
+make[2]: 离开目录“/root/erofs-utils/man”
+Making all in lib
+make[2]: 进入目录“/root/erofs-utils/lib”
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-config.lo -MD -MP -MF .deps/liberofs_la-config.Tpo -c -o liberofs_la-config.lo `test -f 'config.c' || echo './'`config.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-config.lo -MD -MP -MF .deps/liberofs_la-config.Tpo -c config.c  -fPIC -DPIC -o .libs/liberofs_la-config.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-config.lo -MD -MP -MF .deps/liberofs_la-config.Tpo -c config.c -o liberofs_la-config.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-config.Tpo .deps/liberofs_la-config.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-io.lo -MD -MP -MF .deps/liberofs_la-io.Tpo -c -o liberofs_la-io.lo `test -f 'io.c' || echo './'`io.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-io.lo -MD -MP -MF .deps/liberofs_la-io.Tpo -c io.c  -fPIC -DPIC -o .libs/liberofs_la-io.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-io.lo -MD -MP -MF .deps/liberofs_la-io.Tpo -c io.c -o liberofs_la-io.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-io.Tpo .deps/liberofs_la-io.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-cache.lo -MD -MP -MF .deps/liberofs_la-cache.Tpo -c -o liberofs_la-cache.lo `test -f 'cache.c' || echo './'`cache.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-cache.lo -MD -MP -MF .deps/liberofs_la-cache.Tpo -c cache.c  -fPIC -DPIC -o .libs/liberofs_la-cache.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-cache.lo -MD -MP -MF .deps/liberofs_la-cache.Tpo -c cache.c -o liberofs_la-cache.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-cache.Tpo .deps/liberofs_la-cache.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-super.lo -MD -MP -MF .deps/liberofs_la-super.Tpo -c -o liberofs_la-super.lo `test -f 'super.c' || echo './'`super.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-super.lo -MD -MP -MF .deps/liberofs_la-super.Tpo -c super.c  -fPIC -DPIC -o .libs/liberofs_la-super.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-super.lo -MD -MP -MF .deps/liberofs_la-super.Tpo -c super.c -o liberofs_la-super.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-super.Tpo .deps/liberofs_la-super.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-inode.lo -MD -MP -MF .deps/liberofs_la-inode.Tpo -c -o liberofs_la-inode.lo `test -f 'inode.c' || echo './'`inode.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-inode.lo -MD -MP -MF .deps/liberofs_la-inode.Tpo -c inode.c  -fPIC -DPIC -o .libs/liberofs_la-inode.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-inode.lo -MD -MP -MF .deps/liberofs_la-inode.Tpo -c inode.c -o liberofs_la-inode.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-inode.Tpo .deps/liberofs_la-inode.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-xattr.lo -MD -MP -MF .deps/liberofs_la-xattr.Tpo -c -o liberofs_la-xattr.lo `test -f 'xattr.c' || echo './'`xattr.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-xattr.lo -MD -MP -MF .deps/liberofs_la-xattr.Tpo -c xattr.c  -fPIC -DPIC -o .libs/liberofs_la-xattr.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-xattr.lo -MD -MP -MF .deps/liberofs_la-xattr.Tpo -c xattr.c -o liberofs_la-xattr.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-xattr.Tpo .deps/liberofs_la-xattr.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-exclude.lo -MD -MP -MF .deps/liberofs_la-exclude.Tpo -c -o liberofs_la-exclude.lo `test -f 'exclude.c' || echo './'`exclude.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-exclude.lo -MD -MP -MF .deps/liberofs_la-exclude.Tpo -c exclude.c  -fPIC -DPIC -o .libs/liberofs_la-exclude.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-exclude.lo -MD -MP -MF .deps/liberofs_la-exclude.Tpo -c exclude.c -o liberofs_la-exclude.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-exclude.Tpo .deps/liberofs_la-exclude.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-namei.lo -MD -MP -MF .deps/liberofs_la-namei.Tpo -c -o liberofs_la-namei.lo `test -f 'namei.c' || echo './'`namei.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-namei.lo -MD -MP -MF .deps/liberofs_la-namei.Tpo -c namei.c  -fPIC -DPIC -o .libs/liberofs_la-namei.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-namei.lo -MD -MP -MF .deps/liberofs_la-namei.Tpo -c namei.c -o liberofs_la-namei.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-namei.Tpo .deps/liberofs_la-namei.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-data.lo -MD -MP -MF .deps/liberofs_la-data.Tpo -c -o liberofs_la-data.lo `test -f 'data.c' || echo './'`data.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-data.lo -MD -MP -MF .deps/liberofs_la-data.Tpo -c data.c  -fPIC -DPIC -o .libs/liberofs_la-data.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-data.lo -MD -MP -MF .deps/liberofs_la-data.Tpo -c data.c -o liberofs_la-data.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-data.Tpo .deps/liberofs_la-data.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-compress.lo -MD -MP -MF .deps/liberofs_la-compress.Tpo -c -o liberofs_la-compress.lo `test -f 'compress.c' || echo './'`compress.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compress.lo -MD -MP -MF .deps/liberofs_la-compress.Tpo -c compress.c  -fPIC -DPIC -o .libs/liberofs_la-compress.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compress.lo -MD -MP -MF .deps/liberofs_la-compress.Tpo -c compress.c -o liberofs_la-compress.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-compress.Tpo .deps/liberofs_la-compress.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-compressor.lo -MD -MP -MF .deps/liberofs_la-compressor.Tpo -c -o liberofs_la-compressor.lo `test -f 'compressor.c' || echo './'`compressor.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compressor.lo -MD -MP -MF .deps/liberofs_la-compressor.Tpo -c compressor.c  -fPIC -DPIC -o .libs/liberofs_la-compressor.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compressor.lo -MD -MP -MF .deps/liberofs_la-compressor.Tpo -c compressor.c -o liberofs_la-compressor.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-compressor.Tpo .deps/liberofs_la-compressor.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-zmap.lo -MD -MP -MF .deps/liberofs_la-zmap.Tpo -c -o liberofs_la-zmap.lo `test -f 'zmap.c' || echo './'`zmap.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-zmap.lo -MD -MP -MF .deps/liberofs_la-zmap.Tpo -c zmap.c  -fPIC -DPIC -o .libs/liberofs_la-zmap.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-zmap.lo -MD -MP -MF .deps/liberofs_la-zmap.Tpo -c zmap.c -o liberofs_la-zmap.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-zmap.Tpo .deps/liberofs_la-zmap.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-decompress.lo -MD -MP -MF .deps/liberofs_la-decompress.Tpo -c -o liberofs_la-decompress.lo `test -f 'decompress.c' || echo './'`decompress.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-decompress.lo -MD -MP -MF .deps/liberofs_la-decompress.Tpo -c decompress.c  -fPIC -DPIC -o .libs/liberofs_la-decompress.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-decompress.lo -MD -MP -MF .deps/liberofs_la-decompress.Tpo -c decompress.c -o liberofs_la-decompress.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-decompress.Tpo .deps/liberofs_la-decompress.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-compressor_lz4.lo -MD -MP -MF .deps/liberofs_la-compressor_lz4.Tpo -c -o liberofs_la-compressor_lz4.lo `test -f 'compressor_lz4.c' || echo './'`compressor_lz4.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compressor_lz4.lo -MD -MP -MF .deps/liberofs_la-compressor_lz4.Tpo -c compressor_lz4.c  -fPIC -DPIC -o .libs/liberofs_la-compressor_lz4.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compressor_lz4.lo -MD -MP -MF .deps/liberofs_la-compressor_lz4.Tpo -c compressor_lz4.c -o liberofs_la-compressor_lz4.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-compressor_lz4.Tpo .deps/liberofs_la-compressor_lz4.Plo
+/bin/sh ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I..   -DNDEBUG -Wall -Werror -I../include  -g -O2 -MT liberofs_la-compressor_lz4hc.lo -MD -MP -MF .deps/liberofs_la-compressor_lz4hc.Tpo -c -o liberofs_la-compressor_lz4hc.lo `test -f 'compressor_lz4hc.c' || echo './'`compressor_lz4hc.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compressor_lz4hc.lo -MD -MP -MF .deps/liberofs_la-compressor_lz4hc.Tpo -c compressor_lz4hc.c  -fPIC -DPIC -o .libs/liberofs_la-compressor_lz4hc.o
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I.. -DNDEBUG -Wall -Werror -I../include -g -O2 -MT liberofs_la-compressor_lz4hc.lo -MD -MP -MF .deps/liberofs_la-compressor_lz4hc.Tpo -c compressor_lz4hc.c -o liberofs_la-compressor_lz4hc.o >/dev/null 2>&1
+mv -f .deps/liberofs_la-compressor_lz4hc.Tpo .deps/liberofs_la-compressor_lz4hc.Plo
+/bin/sh ../libtool  --tag=CC   --mode=link gcc -Wall -Werror -I../include  -g -O2   -o liberofs.la  liberofs_la-config.lo liberofs_la-io.lo liberofs_la-cache.lo liberofs_la-super.lo liberofs_la-inode.lo liberofs_la-xattr.lo liberofs_la-exclude.lo liberofs_la-namei.lo liberofs_la-data.lo liberofs_la-compress.lo liberofs_la-compressor.lo liberofs_la-zmap.lo liberofs_la-decompress.lo liberofs_la-compressor_lz4.lo liberofs_la-compressor_lz4hc.lo  
+libtool: link: ar cru .libs/liberofs.a .libs/liberofs_la-config.o .libs/liberofs_la-io.o .libs/liberofs_la-cache.o .libs/liberofs_la-super.o .libs/liberofs_la-inode.o .libs/liberofs_la-xattr.o .libs/liberofs_la-exclude.o .libs/liberofs_la-namei.o .libs/liberofs_la-data.o .libs/liberofs_la-compress.o .libs/liberofs_la-compressor.o .libs/liberofs_la-zmap.o .libs/liberofs_la-decompress.o .libs/liberofs_la-compressor_lz4.o .libs/liberofs_la-compressor_lz4hc.o 
+libtool: link: ranlib .libs/liberofs.a
+libtool: link: ( cd ".libs" && rm -f "liberofs.la" && ln -s "../liberofs.la" "liberofs.la" )
+make[2]: 离开目录“/root/erofs-utils/lib”
+Making all in mkfs
+make[2]: 进入目录“/root/erofs-utils/mkfs”
+gcc -DHAVE_CONFIG_H -I. -I..  -I/usr/include/uuid   -DNDEBUG -Wall -Werror -I../include -g -O2 -MT mkfs_erofs-main.o -MD -MP -MF .deps/mkfs_erofs-main.Tpo -c -o mkfs_erofs-main.o `test -f 'main.c' || echo './'`main.c
+mv -f .deps/mkfs_erofs-main.Tpo .deps/mkfs_erofs-main.Po
+/bin/sh ../libtool  --tag=CC   --mode=link gcc -Wall -Werror -I../include -g -O2   -o mkfs.erofs mkfs_erofs-main.o -luuid  ../lib/liberofs.la  -llz4 
+libtool: link: gcc -Wall -Werror -I../include -g -O2 -o mkfs.erofs mkfs_erofs-main.o  -luuid ../lib/.libs/liberofs.a -llz4
+make[2]: 离开目录“/root/erofs-utils/mkfs”
+make[2]: 进入目录“/root/erofs-utils”
+make[2]: 离开目录“/root/erofs-utils”
+make[1]: 离开目录“/root/erofs-utils”
