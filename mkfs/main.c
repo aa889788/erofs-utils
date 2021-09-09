@@ -120,7 +120,7 @@ static int parse_extended_opts(const char *opts)
 			next = p;
 		}
 
-		tokenend = memchr(token, '=', p - token);
+		tokenend = (const char *)memchr(token, '=', p - token);
 		if (tokenend) {
 			keylen = tokenend - token;
 			vallen = p - tokenend - 1;
@@ -371,7 +371,7 @@ int erofs_mkfs_update_super_block(struct erofs_buffer_head *bh,
 	else
 		sb.u1.lz4_max_distance = cpu_to_le16(sbi.lz4_max_distance);
 
-	buf = calloc(sb_blksize, 1);
+	buf = (char *)calloc(sb_blksize, 1);
 	if (!buf) {
 		erofs_err("Failed to allocate memory for sb: %s",
 			  erofs_strerror(-errno));
