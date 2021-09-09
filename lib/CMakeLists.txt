@@ -20,6 +20,7 @@ ADD_LIBRARY(erofs-utils STATIC
 	  compressor.c zmap.c decompress.c
       compressor_lz4.c
       compressor_lz4hc.c
+      block_list.c
 )
 
 include_directories(

@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * erofs-utils/lib/namei.c
- *
  * Created by Li Guifu <blucerlee@gmail.com>
  */
-#include <linux/kdev_t.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <config.h>
+#if defined(HAVE_SYS_SYSMACROS_H)
 #include <sys/sysmacros.h>
-
+#endif
 #include "erofs/print.h"
 #include "erofs/io.h"
 
@@ -244,7 +243,8 @@ static int link_path_walk(const char *name, struct nameidata *nd)
 
 		name = p;
 		/* Skip until no more slashes. */
-		for (name = p; *name == '/'; ++name);
+		for (name = p; *name == '/'; ++name)
+			;
 	}
 	return 0;
 }
@@ -261,4 +261,3 @@ int erofs_ilookup(const char *path, struct erofs_inode *vi)
 	vi->nid = nd.nid;
 	return erofs_read_inode_from_disk(vi);
 }
-

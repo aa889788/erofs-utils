@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * erofs-utils/lib/io.c
- *
  * Copyright (C) 2018 HUAWEI, Inc.
  *             http://www.huawei.com/
  * Created by Li Guifu <bluce.liguifu@huawei.com>
@@ -148,7 +146,11 @@ int dev_write(const void *buf, u64 offset, size_t len)
 		return -EINVAL;
 	}
 
+#ifdef HAVE_PWRITE64
 	ret = pwrite64(erofs_devfd, buf, len, (off64_t)offset);
+#else
+	ret = pwrite(erofs_devfd, buf, len, (off_t)offset);
+#endif
 	if (ret != (int)len) {
 		if (ret < 0) {
 			erofs_err("Failed to write data into device - %s:[%" PRIu64 ", %zd].",
@@ -240,13 +242,15 @@ int dev_read(void *buf, u64 offset, size_t len)
 	}
 	if (offset >= erofs_devsz || len > erofs_devsz ||
 	    offset > erofs_devsz - len) {
-		erofs_err("read posion[%" PRIu64 ", %zd] is too large beyond"
-			  "the end of device(%" PRIu64 ").",
+		erofs_err("read posion[%" PRIu64 ", %zd] is too large beyond the end of device(%" PRIu64 ").",
 			  offset, len, erofs_devsz);
 		return -EINVAL;
 	}
-
+#ifdef HAVE_PREAD64
 	ret = pread64(erofs_devfd, buf, len, (off64_t)offset);
+#else
+	ret = pread(erofs_devfd, buf, len, (off_t)offset);
+#endif
 	if (ret != (int)len) {
 		erofs_err("Failed to read data from device - %s:[%" PRIu64 ", %zd].",
 			  erofs_devname, offset, len);
