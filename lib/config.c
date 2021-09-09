@@ -9,6 +9,7 @@
 #include <string.h>
 #include "erofs/print.h"
 #include "erofs/internal.h"
+#define PACKAGE_VERSION "1.3"
 
 struct erofs_configure cfg;
 struct erofs_sb_info sbi;
