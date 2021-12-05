@@ -21,6 +21,8 @@
 #include "erofs/xattr.h"
 #include "erofs/exclude.h"
 #include "erofs/block_list.h"
+#include "erofs/compress_hints.h"
+#include "erofs/blobchunk.h"
 
 #ifdef HAVE_LIBUUID
 #include <uuid.h>
@@ -42,6 +44,10 @@ static struct option long_options[] = {
 	{"random-pclusterblks", no_argument, NULL, 8},
 #endif
 	{"max-extent-bytes", required_argument, NULL, 9},
+	{"compress-hints", required_argument, NULL, 10},
+	{"chunksize", required_argument, NULL, 11},
+	{"quiet", no_argument, 0, 12},
+	{"blobdev", required_argument, NULL, 13},
 #ifdef WITH_ANDROID
 	{"mount-point", required_argument, NULL, 512},
 	{"product-out", required_argument, NULL, 513},
@@ -68,15 +74,19 @@ static void usage(void)
 {
 	fputs("usage: [options] FILE DIRECTORY\n\n"
 	      "Generate erofs image from DIRECTORY to FILE, and [options] are:\n"
-	      " -zX[,Y]               X=compressor (Y=compression level, optional)\n"
-	      " -C#                   specify the size of compress physical cluster in bytes\n"
 	      " -d#                   set output message level to # (maximum 9)\n"
 	      " -x#                   set xattr tolerance to # (< 0, disable xattrs; default 2)\n"
+	      " -zX[,Y]               X=compressor (Y=compression level, optional)\n"
+	      " -C#                   specify the size of compress physical cluster in bytes\n"
 	      " -EX[,...]             X=extended options\n"
 	      " -T#                   set a fixed UNIX timestamp # to all files\n"
 #ifdef HAVE_LIBUUID
 	      " -UX                   use a given filesystem UUID\n"
 #endif
+	      " --all-root            make all files owned by root\n"
+	      " --blobdev=X           specify an extra device X to store chunked data\n"
+	      " --chunksize=#         generate chunk-based files with #-byte chunks\n"
+	      " --compress-hints=X    specify a file to configure per-file compression strategy\n"
 	      " --exclude-path=X      avoid including file X (X = exact literal path)\n"
 	      " --exclude-regex=X     avoid including files that match X (X = regular expression)\n"
 #ifdef HAVE_LIBSELINUX
@@ -84,9 +94,9 @@ static void usage(void)
 #endif
 	      " --force-uid=#         set all file uids to # (# = UID)\n"
 	      " --force-gid=#         set all file gids to # (# = GID)\n"
-	      " --all-root            make all files owned by root\n"
 	      " --help                display this help and exit\n"
 	      " --max-extent-bytes=#  set maximum decompressed extent size # in bytes\n"
+	      " --quiet               quiet execution (do not write anything to standard output.)\n"
 #ifndef NDEBUG
 	      " --random-pclusterblks randomize pclusterblks for big pcluster (debugging only)\n"
 #endif
@@ -95,7 +105,7 @@ static void usage(void)
 	      " --mount-point=X       X=prefix of target fs path (default: /)\n"
 	      " --product-out=X       X=product_out directory\n"
 	      " --fs-config-file=X    X=fs_config file\n"
-	      " --block-list-file=X    X=block_list file\n"
+	      " --block-list-file=X   X=block_list file\n"
 #endif
 	      "\nAvailable compressors are: ", stderr);
 	print_available_compressors(stderr, ", ");
@@ -139,7 +149,6 @@ static int parse_extended_opts(const char *opts)
 				return -EINVAL;
 			/* disable compacted indexes and 0padding */
 			cfg.c_legacy_compress = true;
-			erofs_sb_clear_lz4_0padding();
 		}
 
 		if (MATCH_EXTENTED_OPT("force-inode-compact", token, keylen)) {
@@ -165,6 +174,18 @@ static int parse_extended_opts(const char *opts)
 				return -EINVAL;
 			cfg.c_noinline_data = true;
 		}
+
+		if (MATCH_EXTENTED_OPT("force-inode-blockmap", token, keylen)) {
+			if (vallen)
+				return -EINVAL;
+			cfg.c_force_chunkformat = FORCE_INODE_BLOCK_MAP;
+		}
+
+		if (MATCH_EXTENTED_OPT("force-chunk-indexes", token, keylen)) {
+			if (vallen)
+				return -EINVAL;
+			cfg.c_force_chunkformat = FORCE_INODE_CHUNK_INDEXES;
+		}
 	}
 	return 0;
 }
@@ -173,8 +194,9 @@ static int mkfs_parse_options_cfg(int argc, char *argv[])
 {
 	char *endptr;
 	int opt, i;
+	bool quiet = false;
 
-	while ((opt = getopt_long(argc, argv, "d:x:z:E:T:U:C:",
+	while ((opt = getopt_long(argc, argv, "C:E:T:U:d:x:z:",
 				 long_options, NULL)) != -1) {
 		switch (opt) {
 		case 'z':
@@ -286,6 +308,9 @@ static int mkfs_parse_options_cfg(int argc, char *argv[])
 				return -EINVAL;
 			}
 			break;
+		case 10:
+			cfg.c_compress_hints_file = optarg;
+			break;
 #ifdef WITH_ANDROID
 		case 512:
 			cfg.mount_point = optarg;
@@ -312,9 +337,34 @@ static int mkfs_parse_options_cfg(int argc, char *argv[])
 					  optarg);
 				return -EINVAL;
 			}
-			cfg.c_physical_clusterblks = i / EROFS_BLKSIZ;
+			cfg.c_pclusterblks_max = i / EROFS_BLKSIZ;
+			cfg.c_pclusterblks_def = cfg.c_pclusterblks_max;
 			break;
-
+		case 11:
+			i = strtol(optarg, &endptr, 0);
+			if (*endptr != '\0') {
+				erofs_err("invalid chunksize %s", optarg);
+				return -EINVAL;
+			}
+			cfg.c_chunkbits = ilog2(i);
+			if ((1 << cfg.c_chunkbits) != i) {
+				erofs_err("chunksize %s must be a power of two",
+					  optarg);
+				return -EINVAL;
+			}
+			if (i < EROFS_BLKSIZ) {
+				erofs_err("chunksize %s must be larger than block size",
+					  optarg);
+				return -EINVAL;
+			}
+			erofs_sb_set_chunked_file();
+			break;
+		case 12:
+			quiet = true;
+			break;
+		case 13:
+			cfg.c_blobdev_path = optarg;
+			break;
 		case 1:
 			usage();
 			exit(0);
@@ -326,6 +376,18 @@ static int mkfs_parse_options_cfg(int argc, char *argv[])
 
 	if (optind >= argc)
 		return -EINVAL;
+
+	if (cfg.c_blobdev_path && cfg.c_chunkbits < LOG_BLOCK_SIZE) {
+		erofs_err("--blobdev must be used together with --chunksize");
+		return -EINVAL;
+	}
+
+	/* TODO: can be implemented with (deviceslot) mapped_blkaddr */
+	if (cfg.c_blobdev_path &&
+	    cfg.c_force_chunkformat == FORCE_INODE_BLOCK_MAP) {
+		erofs_err("--blobdev cannot work with block map currently");
+		return -EINVAL;
+	}
 
 	cfg.c_img_path = strdup(argv[optind++]);
 	if (!cfg.c_img_path)
@@ -347,6 +409,8 @@ static int mkfs_parse_options_cfg(int argc, char *argv[])
 		erofs_err("Unexpected argument: %s\n", argv[optind]);
 		return -EINVAL;
 	}
+	if (quiet)
+		cfg.c_dbg_lvl = EROFS_ERR;
 	return 0;
 }
 
@@ -357,7 +421,7 @@ int erofs_mkfs_update_super_block(struct erofs_buffer_head *bh,
 	struct erofs_super_block sb = {
 		.magic     = cpu_to_le32(EROFS_SUPER_MAGIC_V1),
 		.blkszbits = LOG_BLOCK_SIZE,
-		.inos   = 0,
+		.inos   = cpu_to_le64(sbi.inos),
 		.build_time = cpu_to_le64(sbi.build_time),
 		.build_time_nsec = cpu_to_le32(sbi.build_time_nsec),
 		.blocks = 0,
@@ -366,6 +430,8 @@ int erofs_mkfs_update_super_block(struct erofs_buffer_head *bh,
 		.feature_incompat = cpu_to_le32(sbi.feature_incompat),
 		.feature_compat = cpu_to_le32(sbi.feature_compat &
 					      ~EROFS_FEATURE_COMPAT_SB_CHKSUM),
+		.extra_devices = cpu_to_le16(sbi.extra_devices),
+		.devt_slotoff = cpu_to_le16(sbi.devt_slotoff),
 	};
 	const unsigned int sb_blksize =
 		round_up(EROFS_SUPER_END, EROFS_BLKSIZ);
@@ -394,19 +460,6 @@ int erofs_mkfs_update_super_block(struct erofs_buffer_head *bh,
 	return 0;
 }
 
-#define CRC32C_POLY_LE	0x82F63B78
-static inline u32 crc32c(u32 crc, const u8 *in, size_t len)
-{
-	int i;
-
-	while (len--) {
-		crc ^= *in++;
-		for (i = 0; i < 8; i++)
-			crc = (crc >> 1) ^ ((crc & 1) ? CRC32C_POLY_LE : 0);
-	}
-	return crc;
-}
-
 static int erofs_mkfs_superblock_csum_set(void)
 {
 	int ret;
@@ -414,7 +467,7 @@ static int erofs_mkfs_superblock_csum_set(void)
 	u32 crc;
 	struct erofs_super_block *sb;
 
-	ret = blk_read(buf, 0, 1);
+	ret = blk_read(0, buf, 0, 1);
 	if (ret) {
 		erofs_err("failed to read superblock to set checksum: %s",
 			  erofs_strerror(ret));
@@ -435,7 +488,7 @@ static int erofs_mkfs_superblock_csum_set(void)
 	/* turn on checksum feature */
 	sb->feature_compat = cpu_to_le32(le32_to_cpu(sb->feature_compat) |
 					 EROFS_FEATURE_COMPAT_SB_CHKSUM);
-	crc = crc32c(~0, (u8 *)sb, EROFS_BLKSIZ - EROFS_SUPER_OFFSET);
+	crc = erofs_crc32c(~0, (u8 *)sb, EROFS_BLKSIZ - EROFS_SUPER_OFFSET);
 
 	/* set up checksum field to erofs_super_block */
 	sb->checksum = cpu_to_le32(crc);
@@ -492,6 +545,12 @@ int parse_source_date_epoch(void)
 	return 0;
 }
 
+void erofs_show_progs(int argc, char *argv[])
+{
+	if (cfg.c_dbg_lvl >= EROFS_WARN)
+		fprintf(stderr, "%s %s\n", basename(argv[0]), cfg.c_version);
+}
+
 int main(int argc, char **argv)
 {
 	int err = 0;
@@ -504,11 +563,10 @@ int main(int argc, char **argv)
 	char uuid_str[37] = "not available";
 
 	erofs_init_configure();
-	fprintf(stderr, "%s %s\n", basename(argv[0]), cfg.c_version);
-
 	erofs_mkfs_default_options();
 
 	err = mkfs_parse_options_cfg(argc, argv);
+	erofs_show_progs(argc, argv);
 	if (err) {
 		if (err == -EINVAL)
 			usage();
@@ -519,6 +577,12 @@ int main(int argc, char **argv)
 	if (err) {
 		usage();
 		return 1;
+	}
+
+	if (cfg.c_chunkbits) {
+		err = erofs_blob_init(cfg.c_blobdev_path);
+		if (err)
+			return 1;
 	}
 
 	err = lstat64(cfg.c_src_path, &st);
@@ -557,8 +621,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 #endif
-
 	erofs_show_config();
+	if (erofs_sb_has_chunked_file())
+		erofs_warn("EXPERIMENTAL chunked file feature in use. Use at your own risk!");
 	erofs_set_fs_root(cfg.c_src_path);
 #ifndef NDEBUG
 	if (cfg.c_random_pclusterblks)
@@ -578,6 +643,13 @@ int main(int argc, char **argv)
 		goto exit;
 	}
 
+	err = erofs_load_compress_hints();
+	if (err) {
+		erofs_err("Failed to load compress hints %s",
+			  cfg.c_compress_hints_file);
+		goto exit;
+	}
+
 	err = z_erofs_compress_init(sb_bh);
 	if (err) {
 		erofs_err("Failed to initialize compressor: %s",
@@ -585,6 +657,12 @@ int main(int argc, char **argv)
 		goto exit;
 	}
 
+	err = erofs_generate_devtable();
+	if (err) {
+		erofs_err("Failed to generate device table: %s",
+			  erofs_strerror(err));
+		goto exit;
+	}
 #ifdef HAVE_LIBUUID
 	uuid_unparse_lower(sbi.uuid, uuid_str);
 #endif
@@ -608,6 +686,13 @@ int main(int argc, char **argv)
 	root_nid = erofs_lookupnid(root_inode);
 	erofs_iput(root_inode);
 
+	if (cfg.c_chunkbits) {
+		erofs_info("total metadata: %u blocks", erofs_mapbh(NULL));
+		err = erofs_blob_remap();
+		if (err)
+			goto exit;
+	}
+
 	err = erofs_mkfs_update_super_block(sb_bh, root_nid, &nblocks);
 	if (err)
 		goto exit;
@@ -626,7 +711,10 @@ exit:
 	erofs_droid_blocklist_fclose();
 #endif
 	dev_close();
+	erofs_cleanup_compress_hints();
 	erofs_cleanup_exclude_rules();
+	if (cfg.c_chunkbits)
+		erofs_blob_exit();
 	erofs_exit_configure();
 
 	if (err) {

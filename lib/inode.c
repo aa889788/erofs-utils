@@ -23,6 +23,8 @@
 #include "erofs/xattr.h"
 #include "erofs/exclude.h"
 #include "erofs/block_list.h"
+#include "erofs/compress_hints.h"
+#include "erofs/blobchunk.h"
 
 #define S_SHIFT                 12
 static unsigned char erofs_ftype_by_mode[S_IFMT >> S_SHIFT] = {
@@ -35,7 +37,7 @@ static unsigned char erofs_ftype_by_mode[S_IFMT >> S_SHIFT] = {
 	[S_IFLNK >> S_SHIFT]  = EROFS_FT_SYMLINK,
 };
 
-static unsigned char erofs_mode_to_ftype(umode_t mode)
+unsigned char erofs_mode_to_ftype(umode_t mode)
 {
 	return erofs_ftype_by_mode[(mode & S_IFMT) >> S_SHIFT];
 }
@@ -160,11 +162,15 @@ int erofs_prepare_dir_file(struct erofs_inode *dir, unsigned int nr_subdirs)
 
 	/* dot is pointed to the current dir inode */
 	d = erofs_d_alloc(dir, ".");
+	if (IS_ERR(d))
+		return PTR_ERR(d);
 	d->inode = erofs_igrab(dir);
 	d->type = EROFS_FT_DIR;
 
 	/* dotdot is pointed to the parent dir */
 	d = erofs_d_alloc(dir, "..");
+	if (IS_ERR(d))
+		return PTR_ERR(d);
 	d->inode = erofs_igrab(dir->i_parent);
 	d->type = EROFS_FT_DIR;
 
@@ -327,6 +333,8 @@ static int erofs_write_file_from_buffer(struct erofs_inode *inode, char *buf)
 /* rules to decide whether a file could be compressed or not */
 static bool erofs_file_is_compressible(struct erofs_inode *inode)
 {
+	if (cfg.c_compress_hints_file)
+		return z_erofs_apply_compress_hints(inode);
 	return true;
 }
 
@@ -384,6 +392,15 @@ int erofs_write_file(struct erofs_inode *inode)
 		return 0;
 	}
 
+	if (cfg.c_chunkbits) {
+		inode->u.chunkbits = cfg.c_chunkbits;
+		/* chunk indexes when explicitly specified */
+		inode->u.chunkformat = 0;
+		if (cfg.c_force_chunkformat == FORCE_INODE_CHUNK_INDEXES)
+			inode->u.chunkformat = EROFS_CHUNK_FORMAT_INDEXES;
+		return erofs_blob_write_chunked_file(inode);
+	}
+
 	if (cfg.c_compr_alg_master && erofs_file_is_compressible(inode)) {
 		ret = erofs_write_compressed_file(inode);
 
@@ -437,6 +454,10 @@ static bool erofs_bh_flush_write_inode(struct erofs_buffer_head *bh)
 			if (is_inode_layout_compression(inode))
 				u.dic.i_u.compressed_blocks =
 					cpu_to_le32(inode->u.i_blocks);
+			else if (inode->datalayout ==
+					EROFS_INODE_CHUNK_BASED)
+				u.dic.i_u.c.format =
+					cpu_to_le16(inode->u.chunkformat);
 			else
 				u.dic.i_u.raw_blkaddr =
 					cpu_to_le32(inode->u.i_blkaddr);
@@ -452,8 +473,8 @@ static bool erofs_bh_flush_write_inode(struct erofs_buffer_head *bh)
 
 		u.die.i_ino = cpu_to_le32(inode->i_ino[0]);
 
-		u.die.i_uid = cpu_to_le16(inode->i_uid);
-		u.die.i_gid = cpu_to_le16(inode->i_gid);
+		u.die.i_uid = cpu_to_le32(inode->i_uid);
+		u.die.i_gid = cpu_to_le32(inode->i_gid);
 
 		u.die.i_ctime = cpu_to_le64(inode->i_ctime);
 		u.die.i_ctime_nsec = cpu_to_le32(inode->i_ctime_nsec);
@@ -470,6 +491,10 @@ static bool erofs_bh_flush_write_inode(struct erofs_buffer_head *bh)
 			if (is_inode_layout_compression(inode))
 				u.die.i_u.compressed_blocks =
 					cpu_to_le32(inode->u.i_blocks);
+			else if (inode->datalayout ==
+					EROFS_INODE_CHUNK_BASED)
+				u.die.i_u.c.format =
+					cpu_to_le16(inode->u.chunkformat);
 			else
 				u.die.i_u.raw_blkaddr =
 					cpu_to_le32(inode->u.i_blkaddr);
@@ -502,12 +527,19 @@ static bool erofs_bh_flush_write_inode(struct erofs_buffer_head *bh)
 	}
 
 	if (inode->extent_isize) {
-		/* write compression metadata */
-		off = Z_EROFS_VLE_EXTENT_ALIGN(off);
-		ret = dev_write(inode->compressmeta, off, inode->extent_isize);
-		if (ret)
-			return false;
-		free(inode->compressmeta);
+		if (inode->datalayout == EROFS_INODE_CHUNK_BASED) {
+			ret = erofs_blob_write_chunk_indexes(inode, off);
+			if (ret)
+				return false;
+		} else {
+			/* write compression metadata */
+			off = Z_EROFS_VLE_EXTENT_ALIGN(off);
+			ret = dev_write(inode->compressmeta, off,
+					inode->extent_isize);
+			if (ret)
+				return false;
+			free(inode->compressmeta);
+		}
 	}
 
 	inode->bh = NULL;
@@ -561,6 +593,8 @@ static int erofs_prepare_inode_buffer(struct erofs_inode *inode)
 			    inode->extent_isize;
 
 	if (is_inode_layout_compression(inode))
+		goto noinline;
+	if (inode->datalayout == EROFS_INODE_CHUNK_BASED)
 		goto noinline;
 
 	if (cfg.c_noinline_data && S_ISREG(inode->i_mode)) {
@@ -828,14 +862,13 @@ static int erofs_fill_inode(struct erofs_inode *inode,
 
 static struct erofs_inode *erofs_new_inode(void)
 {
-	static unsigned int counter;
 	struct erofs_inode *inode;
 
 	inode = calloc(1, sizeof(struct erofs_inode));
 	if (!inode)
 		return ERR_PTR(-ENOMEM);
 
-	inode->i_ino[0] = counter++;	/* inode serial number */
+	inode->i_ino[0] = sbi.inos++;	/* inode serial number */
 	inode->i_count = 1;
 
 	init_list_head(&inode->i_subdirs);

@@ -17,10 +17,9 @@
 #include "erofs/compress.h"
 #include "compressor.h"
 #include "erofs/block_list.h"
+#include "erofs/compress_hints.h"
 
 static struct erofs_compress compresshandle;
-static int compressionlevel;
-
 static unsigned int algorithmtype[2];
 
 struct z_erofs_vle_compress_ctx {
@@ -90,7 +89,7 @@ static void vle_write_indexes(struct z_erofs_vle_compress_ctx *ctx,
 
 	do {
 		/* XXX: big pcluster feature should be per-inode */
-		if (d0 == 1 && cfg.c_physical_clusterblks > 1) {
+		if (d0 == 1 && erofs_sb_has_big_pcluster()) {
 			type = Z_EROFS_VLE_CLUSTER_TYPE_NONHEAD;
 			di.di_u.delta[0] = cpu_to_le16(ctx->compressedblks |
 					Z_EROFS_VLE_DI_D0_CBLKCNT);
@@ -149,14 +148,18 @@ static int write_uncompressed_extent(struct z_erofs_vle_compress_ctx *ctx,
 	return count;
 }
 
-/* TODO: apply per-(sub)file strategies here */
 static unsigned int z_erofs_get_max_pclusterblks(struct erofs_inode *inode)
 {
 #ifndef NDEBUG
 	if (cfg.c_random_pclusterblks)
-		return 1 + rand() % cfg.c_physical_clusterblks;
+		return 1 + rand() % cfg.c_pclusterblks_max;
 #endif
-	return cfg.c_physical_clusterblks;
+	if (cfg.c_compress_hints_file) {
+		z_erofs_apply_compress_hints(inode);
+		DBG_BUGON(!inode->z_physical_clusterblks);
+		return inode->z_physical_clusterblks;
+	}
+	return cfg.c_pclusterblks_def;
 }
 
 static int vle_compress_one(struct erofs_inode *inode,
@@ -185,8 +188,7 @@ static int vle_compress_one(struct erofs_inode *inode,
 		}
 
 		count = min(len, cfg.c_max_decompressed_extent_bytes);
-		ret = erofs_compress_destsize(h, compressionlevel,
-					      ctx->queue + ctx->head,
+		ret = erofs_compress_destsize(h, ctx->queue + ctx->head,
 					      &count, dst, pclustersize);
 		if (ret <= 0) {
 			if (ret != -EAGAIN) {
@@ -493,7 +495,7 @@ int erofs_write_compressed_file(struct erofs_inode *inode)
 		inode->datalayout = EROFS_INODE_FLAT_COMPRESSION_LEGACY;
 	}
 
-	if (cfg.c_physical_clusterblks > 1) {
+	if (erofs_sb_has_big_pcluster()) {
 		inode->z_advise |= Z_EROFS_ADVISE_BIG_PCLUSTER_1;
 		if (inode->datalayout == EROFS_INODE_FLAT_COMPRESSION)
 			inode->z_advise |= Z_EROFS_ADVISE_BIG_PCLUSTER_2;
@@ -586,6 +588,8 @@ static int erofs_get_compress_algorithm_id(const char *name)
 {
 	if (!strcmp(name, "lz4") || !strcmp(name, "lz4hc"))
 		return Z_EROFS_COMPRESSION_LZ4;
+	if (!strcmp(name, "lzma"))
+		return Z_EROFS_COMPRESSION_LZMA;
 	return -ENOTSUP;
 }
 
@@ -603,7 +607,7 @@ int z_erofs_build_compr_cfgs(struct erofs_buffer_head *sb_bh)
 			.lz4 = {
 				.max_distance =
 					cpu_to_le16(sbi.lz4_max_distance),
-				.max_pclusterblks = cfg.c_physical_clusterblks,
+				.max_pclusterblks = cfg.c_pclusterblks_max,
 			}
 		};
 
@@ -617,6 +621,29 @@ int z_erofs_build_compr_cfgs(struct erofs_buffer_head *sb_bh)
 				sizeof(lz4alg));
 		bh->op = &erofs_drop_directly_bhops;
 	}
+#ifdef HAVE_LIBLZMA
+	if (sbi.available_compr_algs & (1 << Z_EROFS_COMPRESSION_LZMA)) {
+		struct {
+			__le16 size;
+			struct z_erofs_lzma_cfgs lzma;
+		} __packed lzmaalg = {
+			.size = cpu_to_le16(sizeof(struct z_erofs_lzma_cfgs)),
+			.lzma = {
+				.dict_size = cpu_to_le32(cfg.c_dict_size),
+			}
+		};
+
+		bh = erofs_battach(bh, META, sizeof(lzmaalg));
+		if (IS_ERR(bh)) {
+			DBG_BUGON(1);
+			return PTR_ERR(bh);
+		}
+		erofs_mapbh(bh->block);
+		ret = dev_write(&lzmaalg, erofs_btell(bh, false),
+				sizeof(lzmaalg));
+		bh->op = &erofs_drop_directly_bhops;
+	}
+#endif
 	return ret;
 }
 
@@ -630,19 +657,20 @@ int z_erofs_compress_init(struct erofs_buffer_head *sb_bh)
 		return ret;
 
 	/*
-	 * if primary algorithm is not lz4* (e.g. compression off),
-	 * clear LZ4_0PADDING feature for old kernel compatibility.
+	 * if primary algorithm is empty (e.g. compression off),
+	 * clear 0PADDING feature for old kernel compatibility.
 	 */
 	if (!cfg.c_compr_alg_master ||
-	    strncmp(cfg.c_compr_alg_master, "lz4", 3))
+	    (cfg.c_legacy_compress && !strcmp(cfg.c_compr_alg_master, "lz4")))
 		erofs_sb_clear_lz4_0padding();
 
 	if (!cfg.c_compr_alg_master)
 		return 0;
 
-	compressionlevel = cfg.c_compr_level_master < 0 ?
-		compresshandle.alg->default_level :
-		cfg.c_compr_level_master;
+	ret = erofs_compressor_setlevel(&compresshandle,
+					cfg.c_compr_level_master);
+	if (ret)
+		return ret;
 
 	/* figure out primary algorithm */
 	ret = erofs_get_compress_algorithm_id(cfg.c_compr_alg_master);
@@ -655,16 +683,19 @@ int z_erofs_compress_init(struct erofs_buffer_head *sb_bh)
 	 * if big pcluster is enabled, an extra CBLKCNT lcluster index needs
 	 * to be loaded in order to get those compressed block counts.
 	 */
-	if (cfg.c_physical_clusterblks > 1) {
-		if (cfg.c_physical_clusterblks >
+	if (cfg.c_pclusterblks_max > 1) {
+		if (cfg.c_pclusterblks_max >
 		    Z_EROFS_PCLUSTER_MAX_SIZE / EROFS_BLKSIZ) {
 			erofs_err("unsupported clusterblks %u (too large)",
-				  cfg.c_physical_clusterblks);
+				  cfg.c_pclusterblks_max);
 			return -EINVAL;
 		}
 		erofs_sb_set_big_pcluster();
 		erofs_warn("EXPERIMENTAL big pcluster feature in use. Use at your own risk!");
 	}
+
+	if (ret != Z_EROFS_COMPRESSION_LZ4)
+		erofs_sb_set_compr_cfgs();
 
 	if (erofs_sb_has_compr_cfgs()) {
 		sbi.available_compr_algs |= 1 << ret;
